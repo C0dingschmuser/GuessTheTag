@@ -200,6 +200,7 @@ public class ProgressBar : MonoBehaviour
                 GetComponent<RectTransform>().sizeDelta = new Vector2(685.83f * p, 19.8f);
             } else
             { //timer abgelaufen -> runde vorbei
+
                 if(!imageSetter.GetComponent<ImageSetter>().thinkDone)
                 {
                     if (userHandler.GetComponent<UserHandler>().networkGameRunning)

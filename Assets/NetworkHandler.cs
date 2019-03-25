@@ -480,6 +480,7 @@ public class NetworkHandler : MonoBehaviour
 
         DisconnectFromServer();
         connecting = false;
+        uHandler.networkGameRunning = false;
 
         UnityMainThreadDispatcher.Instance().Enqueue(EndMatch());
     }

@@ -22,6 +22,8 @@ public class ImageSetter : MonoBehaviour
     private string[] postList;
     Color hideColor = new Color32(68, 68, 68, 255);
     public AnimationCurve curve;
+    public TMP_InputField inputFieldRef;
+    private bool input_wasFocused = false;
     TouchScreenKeyboard keyboard;
 
     // Start is called before the first frame update
@@ -252,61 +254,84 @@ public class ImageSetter : MonoBehaviour
         //keyboard = TouchScreenKeyboard.Open("");
     }
 
-    public void CheckTag()
+    public void EndEdit()
+    {
+        if(input_wasFocused)
+        {
+            CheckTag();
+        }
+    }
+
+    private void CheckTag()
     {
         if(!imageLoaded || !thinkDone)
         {
             return;
         }
 
-        string tagText = inputObj.GetComponent<TMP_InputField>().text.ToLower();
-        inputObj.GetComponent<TMP_InputField>().text = "";
-
         int tpos = 0;
-        foreach(GameObject tempTag in tagObjs) {
+
+        int guessed = -1;
+
+        string tagText = inputFieldRef.text;
+        inputFieldRef.text = "";
+
+        for(int i = 0; i < tagObjs.Count; i++) {
+            GameObject tempTag = tagObjs[i];
+
             if(!tempTag.GetComponent<TagData>().isGuessed[0])
             {
                 tagText = tagText.ToLower();
                 if(tagText.Equals(tempTag.GetComponent<TagData>().text.ToLower()))
                 { //wenn richtiger tag
-                    int addBenis = userHandler.GetComponent<UserHandler>().SetUserBenis(tpos);
-
-                    if(userHandler.GetComponent<UserHandler>().networkGameRunning)
-                    {
-                        int benis = userHandler.GetComponent<UserHandler>().GetUserBenis();
-                        userHandler.GetComponent<NetworkHandler>().
-                            SendMessage("SendTCPMessage", "4~" + tpos.ToString() + "~" + benis.ToString() + "~");
-
-                        userHandler.GetComponent<Stats>().mpPointsCollected += (ulong)addBenis;
-                        userHandler.GetComponent<Stats>().mpTagsCorrectGuessed++;
-                    } else
-                    {
-                        userHandler.GetComponent<Stats>().pointsCollected += (ulong)addBenis;
-                        userHandler.GetComponent<Stats>().tagsCorrectGuessed++;
-                    }
-
-                    tempTag.transform.GetChild(0).GetComponent<TextMeshProUGUI>().color = Color.white;
-                    tempTag.GetComponent<TagData>().isGuessed[0] = true;
-
-                    SpawnPointText(userHandler.GetComponent<NetworkHandler>().username,
-                        3f, userHandler.GetComponent<UserHandler>().GetUserColor(),
-                        new Vector3(360, 672.6f));
-
-                    inputObj.GetComponent<Image>().DOBlendableColor(Color.green, 0.5f).SetEase(curve);
-                } else
-                {
-                    if (userHandler.GetComponent<UserHandler>().networkGameRunning)
-                    {
-                        userHandler.GetComponent<Stats>().mpTagsGuessed++;
-                    } else
-                    {
-                        userHandler.GetComponent<Stats>().tagsGuessed++;
-                    }
-
-                    inputObj.GetComponent<Image>().DOBlendableColor(Color.red, 0.5f).SetEase(curve);
+                    guessed = i;
+                    break;
                 }
             }
             tpos++;
+        }
+
+        if(guessed > -1)
+        { //tag erraten
+            GameObject tempTag = tagObjs[guessed];
+
+            int addBenis = userHandler.GetComponent<UserHandler>().SetUserBenis(tpos);
+
+            if (userHandler.GetComponent<UserHandler>().networkGameRunning)
+            {
+                int benis = userHandler.GetComponent<UserHandler>().GetUserBenis();
+                userHandler.GetComponent<NetworkHandler>().
+                    SendMessage("SendTCPMessage", "4~" + tpos.ToString() + "~" + benis.ToString() + "~");
+
+                userHandler.GetComponent<Stats>().mpPointsCollected += (ulong)addBenis;
+                userHandler.GetComponent<Stats>().mpTagsCorrectGuessed++;
+            }
+            else
+            {
+                userHandler.GetComponent<Stats>().pointsCollected += (ulong)addBenis;
+                userHandler.GetComponent<Stats>().tagsCorrectGuessed++;
+            }
+
+            tempTag.transform.GetChild(0).GetComponent<TextMeshProUGUI>().color = Color.white;
+            tempTag.GetComponent<TagData>().isGuessed[0] = true;
+
+            SpawnPointText(userHandler.GetComponent<NetworkHandler>().username,
+                3f, userHandler.GetComponent<UserHandler>().GetUserColor(),
+                new Vector3(360, 672.6f));
+
+            inputObj.GetComponent<Image>().DOBlendableColor(Color.green, 0.5f).SetEase(curve);
+        } else
+        {
+            if (userHandler.GetComponent<UserHandler>().networkGameRunning)
+            {
+                userHandler.GetComponent<Stats>().mpTagsGuessed++;
+            }
+            else
+            {
+                userHandler.GetComponent<Stats>().tagsGuessed++;
+            }
+
+            inputObj.GetComponent<Image>().DOBlendableColor(Color.red, 0.5f).SetEase(curve);
         }
     }
 
@@ -417,6 +442,8 @@ public class ImageSetter : MonoBehaviour
             //CheckTag();
         }
 
+        input_wasFocused = inputFieldRef.isFocused;
+
         if(Input.GetKeyDown(KeyCode.Return) ||
             Input.GetKeyDown(KeyCode.KeypadEnter))
         {
@@ -436,12 +463,14 @@ public class ImageSetter : MonoBehaviour
                 }
             }
 
+            ok = false;
+
             if(ok)
             {
                 Color tmp = inputObj.GetComponent<Image>().color;
                 if(tmp.a.Equals(1))
                 {
-                    CheckTag();
+                    //CheckTag();
                 } 
             }
         }

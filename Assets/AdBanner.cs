@@ -7,13 +7,13 @@ public class AdBanner : MonoBehaviour
 {
 
     string gameID = "3063285";
-    string placementID = "banner", placementID2 = "banner2";
+    string placementID = "banner";
 
     // Start is called before the first frame update
     void Start()
     {
-        Advertisement.Initialize(gameID, true);
-        StartCoroutine(ShowBannerWhenReady());
+        //Advertisement.Initialize(gameID, true);
+        //StartCoroutine(ShowBannerWhenReady());
         //StartCoroutine(ShowBanner2WhenReady());
     }
 
@@ -24,21 +24,5 @@ public class AdBanner : MonoBehaviour
             yield return new WaitForSeconds(0.5f);
         }
         Advertisement.Banner.Show(placementID);
-    }
-
-    IEnumerator ShowBanner2WhenReady()
-    {
-        while (!Advertisement.IsReady("banner2"))
-        {
-            yield return new WaitForSeconds(0.5f);
-        }
-        Advertisement.Banner.Show(placementID2);
-        Advertisement.Banner.SetPosition(BannerPosition.TOP_CENTER);
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }

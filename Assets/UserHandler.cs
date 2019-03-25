@@ -510,10 +510,7 @@ public class UserHandler : MonoBehaviour
                     }
                 }
 
-                if(allGuessed)
-                {
-                    users[i].GetComponent<UserData>().guessedAll = true;
-                }
+                users[i].GetComponent<UserData>().guessedAll = allGuessed;
 
                 if(users[i].GetComponent<UserData>().timer <= 0 &&
                     !users[i].GetComponent<UserData>().guessedAll)
