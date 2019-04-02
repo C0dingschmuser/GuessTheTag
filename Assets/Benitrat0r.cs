@@ -695,8 +695,6 @@ public class Benitrat0r : MonoBehaviour
                 {
                     SetWin(0);
                 }
-
-                Spin();
             }
         }
 
