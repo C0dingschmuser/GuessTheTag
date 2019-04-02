@@ -5,16 +5,19 @@ using UnityEngine.UI;
 using DG.Tweening;
 using TMPro;
 using UnityEngine.Networking;
+using System;
+using System.IO;
+using Random = UnityEngine.Random;
 
 public class ImageSetter : MonoBehaviour
 {
-    public GameObject userHandler, pointPrefab, pointErrorPrefab;
+    public GameObject userHandler, progressBar, pointPrefab, pointErrorPrefab, chatPrefab;
     public Sprite ver;
     public GameObject verObj, tagPrefab, inputObj, statusText;
     public List<GameObject> pointBuffer = new List<GameObject>();
     public AspectRatioFitter aFit;
     public bool inputActivated = false, offlineMode = false,
-        imageLoaded = false, thinkDone = false, zoomEnabled = false;
+        imageLoaded = false, thinkDone = false, zoomEnabled = false, chatMode = false;
     public List<GameObject> tagObjs = new List<GameObject>();
     public float posX, posYtop, posYbottom;
     public Transform tagParent, pointParent;
@@ -62,7 +65,7 @@ public class ImageSetter : MonoBehaviour
         inputActivated = false;
     }
 
-    public void LoadRandomPost(int overrideID = -1)
+    public void LoadRandomPost(int overrideID = -1, bool delTags = false)
     {
         int pCount = Random.Range(0, 512);
 
@@ -71,20 +74,30 @@ public class ImageSetter : MonoBehaviour
             pCount = Random.Range(512, postList.Length);
         }
 
-        if(overrideID > -1)
+        if (overrideID > -1)
         {
             pCount = overrideID;
         }
 
         string[] postSplit = postList[pCount].Split(';');
 
-        if(postSplit.Length != 6)
+        if(postSplit.Length != 8)
         { //fehler beim splitten -> neuer post
             LoadRandomPost();
             return;
         }
 
         string[] tags = postSplit[4].Split(',');
+
+        if(delTags)
+        {
+            foreach (GameObject tag in tagObjs)
+            {
+                Destroy(tag);
+            }
+
+            tagObjs.Clear();
+        }
 
         int maxLength = 4;
 
@@ -99,15 +112,39 @@ public class ImageSetter : MonoBehaviour
 
         Sprite image = null;
 
-        if (pCount < 512)
+        bool hasToGetOnline = true;
+
+        if(pCount < 512)
         {
-            image = Resources.Load<Sprite>("Sprites/posts/img_" +
-                postSplit[1] + "_" + postSplit[0]);
+            if(OfflinePack.offlineInstalled)
+            { //lade lokal da offline pack installiert
+                hasToGetOnline = false;
+            }
+        }
+
+        imageLoaded = false;
+
+        if(!hasToGetOnline)
+        {
+            string path = Application.persistentDataPath + "/posts/img_" +
+                postSplit[1] + "_" + postSplit[0] + ".jpg";
+
+            byte[] imgData = File.ReadAllBytes(path);
+
+            Texture2D img = new Texture2D(Int32.Parse(postSplit[6]),
+                Int32.Parse(postSplit[7]), TextureFormat.ARGB32, false);
+
+            img.LoadImage(imgData);
+            img.name = Path.GetFileNameWithoutExtension(path);
+
+            image = Sprite.Create(img,
+                new Rect(0, 0, img.width, img.height),
+                new Vector2(0, 0));
+
             SetImage(image);
             imageLoaded = true;
         } else
-        { //get img from pr0
-
+        {
             string linkString = "https://img.pr0gramm.com/" + postSplit[5];
 
             StartCoroutine(GetTexture(linkString));
@@ -130,6 +167,11 @@ public class ImageSetter : MonoBehaviour
                 new Rect(0,0,myTexture.width,myTexture.height), 
                 new Vector2(0,0)));
             imageLoaded = true;
+
+            if(progressBar.GetComponent<ProgressBar>().royaleShowTags)
+            {
+                FadeInTags();
+            }
         }
     }
 
@@ -269,6 +311,8 @@ public class ImageSetter : MonoBehaviour
             return;
         }
 
+        bool knockout = userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().knockout;
+
         int tpos = 0;
 
         int guessed = -1;
@@ -276,7 +320,50 @@ public class ImageSetter : MonoBehaviour
         string tagText = inputFieldRef.text;
         inputFieldRef.text = "";
 
-        for(int i = 0; i < tagObjs.Count; i++) {
+        if(chatMode)
+        {
+            if (CheckMessage(tagText))
+            {
+                userHandler.GetComponent<UserHandler>().ChatMessage(tagText, 0);
+                if (userHandler.GetComponent<UserHandler>().networkGameRunning)
+                {
+                    userHandler.GetComponent<NetworkHandler>().
+                        SendMessage("SendTCPMessage", "7~" + tagText + "~");
+                }
+            } else
+            {
+                inputObj.GetComponent<Image>().DOBlendableColor(Color.red, 0.5f).SetEase(curve);
+            }
+            return;
+        } else
+        { //command check
+            if(tagText.Equals("/skip"))
+            {
+                if(knockout && MenuData.mode == (int)MenuData.Modes.battleRoyale)
+                {
+                    return;
+                }
+
+                if(userHandler.GetComponent<UserHandler>().networkGameRunning)
+                {
+                    userHandler.GetComponent<NetworkHandler>().
+                        SendMessage("SendTCPMessage", "8~");
+                } else
+                { //skip runde
+                    userHandler.GetComponent<UserHandler>().ResetPlayerTimer();
+                    userHandler.GetComponent<UserHandler>().ResetRoyaleGuessed();
+                    progressBar.GetComponent<ProgressBar>().SkipRound();
+                }
+                return;
+            }
+        }
+
+        if (knockout && MenuData.mode == (int)MenuData.Modes.battleRoyale)
+        {
+            return;
+        }
+
+        for (int i = 0; i < tagObjs.Count; i++) {
             GameObject tempTag = tagObjs[i];
 
             if(!tempTag.GetComponent<TagData>().isGuessed[0])
@@ -315,9 +402,22 @@ public class ImageSetter : MonoBehaviour
             tempTag.transform.GetChild(0).GetComponent<TextMeshProUGUI>().color = Color.white;
             tempTag.GetComponent<TagData>().isGuessed[0] = true;
 
-            SpawnPointText(userHandler.GetComponent<NetworkHandler>().username,
-                3f, userHandler.GetComponent<UserHandler>().GetUserColor(),
-                new Vector3(360, 672.6f));
+            if (MenuData.mode == (int)MenuData.Modes.versus)
+            {
+                userHandler.GetComponent<UserHandler>().FlashTag(guessed, 0, 0);
+            } else if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
+            { //check of alle tags erraten, wenn ja  neuer post
+                bool allGuessed = userHandler.GetComponent<UserHandler>().SetGetRoyaleGussed(guessed);
+
+                if(allGuessed)
+                { //alle tags erraten -> neues bild
+                    userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().UpdatePostCount();
+                    userHandler.GetComponent<UserHandler>().ResetPlayerTimer();
+                    userHandler.GetComponent<UserHandler>().ResetRoyaleGuessed();
+                    userHandler.GetComponent<UserHandler>().SetBenisRaw(50); //50 Pkt Rundenbonus
+                    progressBar.GetComponent<ProgressBar>().SkipRound();
+                }
+            }
 
             inputObj.GetComponent<Image>().DOBlendableColor(Color.green, 0.5f).SetEase(curve);
         } else
@@ -335,6 +435,39 @@ public class ImageSetter : MonoBehaviour
         }
     }
 
+    private bool CheckMessage(string message)
+    {
+        bool ok = true;
+
+        string sonder = ".-!%^üöäÜÖÄß=()/";
+
+        foreach(char c in message)
+        {
+            if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || sonder.Contains(c.ToString()) || c.Equals(' ')))
+            {
+                ok = false;
+            }
+        }
+
+        return ok;
+    }
+
+    public void EnableDisableChat()
+    {
+        string newPlaceholder = "";
+
+        if(chatMode)
+        {
+            chatMode = false;
+            newPlaceholder = "Hier Tag eingeben (Groß - und Kleinschreibung egal!)";
+        } else
+        {
+            chatMode = true;
+            newPlaceholder = "Hier Nachricht eingeben";
+        }
+        inputFieldRef.placeholder.gameObject.GetComponent<TextMeshProUGUI>().text = newPlaceholder;
+    }
+
     public void SpawnPointText(string text, float time, Color c, Vector3 pos, float yTarget = 1161f, bool error = false)
     {
         GameObject prefab = pointPrefab;
@@ -349,6 +482,17 @@ public class ImageSetter : MonoBehaviour
         pObj.SetActive(false);
 
         pointBuffer.Add(pObj);
+    }
+
+    public void SpawnChatText(string text, float time, Color c, Vector3 pos, float yTarget = 1161f)
+    {
+        GameObject prefab = chatPrefab;
+
+        GameObject cObj = Instantiate(chatPrefab, pointParent);
+        cObj.GetComponent<PointText>().Initialize(text, time, c, pos, yTarget);
+        cObj.SetActive(false);
+
+        pointBuffer.Add(cObj);
     }
 
     public bool ShowTags()

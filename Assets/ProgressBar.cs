@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
+using UnityEngine.UI;
 
 public class ProgressBar : MonoBehaviour
 {
-    public GameObject imageSetter, userHandler, networkHandler;
-    public bool gameActive = false;
+    public GameObject imageSetter, userHandler, networkHandler, userKnockoutObj;
+    public bool gameActive = false, royaleShowTags = false;
     public float timer = 0;
     private int originalTimer;
     private bool resetInvoked = false, backPressed = false;
@@ -22,7 +23,10 @@ public class ProgressBar : MonoBehaviour
     {
         this.diff = diff;
 
-        int seconds = 10;
+
+        userKnockoutObj.SetActive(false);
+
+        int seconds = 5;
         timer = seconds;
         originalTimer = seconds;
         gameActive = true;
@@ -45,12 +49,52 @@ public class ProgressBar : MonoBehaviour
             networkHandler.GetComponent<NetworkHandler>().SendMessage("SendTCPMessage", "6~");
         }
 
-        ResetGame(false, bot);
+        bool full = false;
+
+        if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
+        {
+            full = true;
+        }
+
+        ResetGame(full, bot);
     }
 
     private void BotQuit()
     {
         gameActive = false;
+
+        if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
+        { //calc benis
+            List<int> uList = userHandler.GetComponent<UserHandler>().SortBattleRoyale();
+
+            int userPos = uList.IndexOf(0);
+
+            int mP = 25 - userPos;
+
+            float benis = userHandler.GetComponent<UserHandler>().GetUserBenis();
+
+            benis *= mP / 2;
+            benis /= 5;
+
+            int diff = userHandler.GetComponent<UserHandler>().diff;
+
+            if(diff == 0)
+            {
+                benis *= 0.5f;
+            } else if(diff == 1)
+            {
+                benis *= 0.75f;
+            } else if(diff == 2)
+            {
+                benis = benis * 1.1f;
+            }
+
+            if(userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().knockout ||
+                userPos == 0)
+            { //benis gibts nur wenn ausgeknocked oder wenn platz 1
+                UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + (ulong)benis);
+            }
+        }
 
         imageSetter.GetComponent<ImageSetter>().ResetGame(true);
         userHandler.GetComponent<UserHandler>().ResetGame(true, 0, true);
@@ -75,7 +119,8 @@ public class ProgressBar : MonoBehaviour
         {
             userHandler.GetComponent<UserHandler>().botGameCount++;
 
-            if (userHandler.GetComponent<UserHandler>().botGameCount > 1 || quit)
+            if (userHandler.GetComponent<UserHandler>().botGameCount > 1 || quit || 
+                MenuData.mode == (int)MenuData.Modes.battleRoyale)
             { //verlasse spiel
                 BotQuit();
 
@@ -107,20 +152,61 @@ public class ProgressBar : MonoBehaviour
 
         userHandler.GetComponent<UserHandler>().thinkDone = true;
 
-        int seconds = 120;
-        if (diff == 1)
+        SetTimer();
+    }
+
+    private void SetTimer()
+    {
+        int seconds = 90;
+
+        if (MenuData.mode == (int)MenuData.Modes.versus)
         {
-            seconds = 75;
+            if (diff == 1)
+            {
+                seconds = 60;
+            }
+            else if (diff == 2)
+            {
+                seconds = 30;
+            }
         }
-        else if (diff == 2)
-        {
-            seconds = 45;
+        else
+        { //sekunden bis player knockout
+            seconds = 30; //leicht
+            if (diff == 1)
+            { //mittel
+                seconds = 20;
+            }
+            else if (diff == 2)
+            { //schwer
+                seconds = 10; //10 original
+            }
         }
         timer = seconds;
         originalTimer = seconds;
     }
 
-    public void StartReset()
+    public void SkipRound()
+    {
+        if (MenuData.mode == (int)MenuData.Modes.versus)
+        {
+            timer = 0;
+            if (userHandler.GetComponent<UserHandler>().networkGameRunning)
+            {
+                networkHandler.GetComponent<NetworkHandler>().state =
+                    (int)NetworkHandler.States.end;
+            }
+            StartReset();
+        } else if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
+        {
+
+            royaleShowTags = true;
+
+            imageSetter.GetComponent<ImageSetter>().LoadRandomPost(-1, true);
+        }
+    }
+
+    public void StartReset(float forceTime = 5f)
     {
         if (resetInvoked)
         {
@@ -128,19 +214,26 @@ public class ProgressBar : MonoBehaviour
         }
 
         resetInvoked = true;
-        bool n = imageSetter.GetComponent<ImageSetter>().ShowTags();
 
-        float time = 5f;
-        if (n)
+        float time = forceTime;
+
+        if (MenuData.mode == (int)MenuData.Modes.versus)
         {
-            time += 10f;
+
+            bool n = imageSetter.GetComponent<ImageSetter>().ShowTags();
+
+            time = 5f;
+            if (n)
+            {
+                time += 5f;
+            }
         }
 
         imageSetter.GetComponent<ImageSetter>().inputObj.SetActive(false);
 
         if(userHandler.GetComponent<UserHandler>().networkGameRunning)
         {
-            time = 10f;
+            time = 7.5f;
         }
 
         userHandler.GetComponent<UserHandler>().botGameRunning = false;
@@ -149,6 +242,43 @@ public class ProgressBar : MonoBehaviour
 
 
         Invoke("StandardReset", time);
+    }
+
+    public void StartRoyaleReset()
+    {
+        UserHandler uHandler = userHandler.GetComponent<UserHandler>();
+        int pos = uHandler.GetLastRoyaleUser();
+
+        uHandler.users[pos].GetComponent<UserData>().DoKnockout();
+
+        if(pos == 0)
+        { //user timeout
+            userKnockoutObj.SetActive(true);
+
+            GameObject pr0Img = imageSetter.transform.GetChild(0).gameObject;
+            pr0Img.GetComponent<Image>().material.SetFloat("_EffectAmount", 1f);
+
+            imageSetter.GetComponent<ImageSetter>().ShowTags();
+        }
+
+        userHandler.GetComponent<UserHandler>().SortBattleRoyale();
+
+        int remCount = userHandler.GetComponent<UserHandler>().GetRemainigRoyalePlayers();
+
+        if(remCount == 1)
+        {
+            int lastPlayerPos = userHandler.GetComponent<UserHandler>().GetLastRoyaleUser();
+
+            if(lastPlayerPos == 0)
+            { //wenn user dann +benis
+
+            }
+
+            StartReset();
+            return;
+        }
+
+        SetTimer();
     }
 
     private void ResetBackPressed()
@@ -234,7 +364,13 @@ public class ProgressBar : MonoBehaviour
                 }
                 else
                 {
-                    StartReset();
+                    if (MenuData.mode == (int)MenuData.Modes.versus)
+                    {
+                        StartReset();
+                    } else
+                    {
+                        StartRoyaleReset();
+                    }
                 }
             }
         }

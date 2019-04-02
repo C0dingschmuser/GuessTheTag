@@ -53,6 +53,9 @@ public class NetworkHandler : MonoBehaviour
         startMatch = 3,
         tagGuessed = 4,
         startEnd = 5,
+        chatMessage = 6,
+        skipUpdate = 7,
+        skipApproved = 8,
         matchDone = 10,
         timeoutCheck = 11,
         queueUpdate = 12,
@@ -117,6 +120,7 @@ public class NetworkHandler : MonoBehaviour
 
     private void Login()
     {
+        Thread.Sleep(100); //wartet 100ms
         int id = (int)NetworkIDs.login;
 
         string message = 
@@ -142,8 +146,7 @@ public class NetworkHandler : MonoBehaviour
 
     public void DisconnectFromServer()
     {
-
-        shutdown = true;
+        SendTCPMessage("-1~");
 
         if (socketConnection != null)
         {
@@ -155,7 +158,6 @@ public class NetworkHandler : MonoBehaviour
             //socketSenderConnection.Close();
         }
 
-        state = (int)States.disconnected;
         if (clientReceiveThread != null)
         {
             //clientReceiveThread.Abort();
@@ -245,6 +247,12 @@ public class NetworkHandler : MonoBehaviour
                         try
                         {
                             Send(clientMessage, socketSenderConnection.GetStream());
+
+                            if(clientMessage.Equals("<-1~>")) //quit
+                            {
+                                shutdown = true;
+                                state = (int)States.disconnected;
+                            }
 
                             sendData.RemoveAt(0);
                         }
@@ -348,6 +356,7 @@ public class NetworkHandler : MonoBehaviour
                     connecting = false;
                     setupComplete = true;
 
+                    UnityMainThreadDispatcher.Instance().Enqueue(CreateUsers());
                     UnityMainThreadDispatcher.Instance().Enqueue(SetName(split[1]));
 
                     UnityMainThreadDispatcher.Instance().Enqueue(SetStatusText("Suche Spiel - Spieler in Warteschlange: " + split[2]));
@@ -399,6 +408,7 @@ public class NetworkHandler : MonoBehaviour
 
                     break;
                 case (int)ServerCodes.startEnd: //ratezeit vorbei -> zeige stats
+                    UnityMainThreadDispatcher.Instance().Enqueue(SetStatusText("", false));
                     UnityMainThreadDispatcher.Instance().Enqueue(HideShowInput(false));
                     state = (int)States.end;
                     break;
@@ -410,8 +420,47 @@ public class NetworkHandler : MonoBehaviour
                     playersInQueue = Int32.Parse(split[1]);
                     UnityMainThreadDispatcher.Instance().Enqueue(SetStatusText("Suche Spiel - Spieler in Warteschlange: " + split[1]));
                     break;
+                case (int)ServerCodes.chatMessage: //chat msg
+                    UnityMainThreadDispatcher.Instance().Enqueue(ChatMessage(split[1], split[2]));
+                    break;
+                case (int)ServerCodes.skipUpdate: //skip update
+                    UnityMainThreadDispatcher.Instance().Enqueue(SkipUpdate(Int32.Parse(split[1]), Int32.Parse(split[2])));
+                    break;
+                case (int)ServerCodes.skipApproved: //skip approved
+                    UnityMainThreadDispatcher.Instance().Enqueue(SkipApproved());
+                    break;
             }
         }
+    }
+
+    public IEnumerator SkipApproved()
+    {
+        progressBar.GetComponent<ProgressBar>().SkipRound();
+        yield return null;
+    }
+
+    public IEnumerator SkipUpdate(int count, int userCount)
+    {
+        UnityMainThreadDispatcher.Instance().Enqueue(
+            SetStatusText(count.ToString() + " / " + userCount.ToString() + " für Postskip"));
+        yield return null;
+    }
+
+    public IEnumerator ChatMessage(string user, string message)
+    {
+        int id = 1;
+        for(int i = 1; i < uHandler.users.Count; i++)
+        {
+            if(uHandler.users[i].GetComponent<UserData>().uName == user)
+            {
+                id = i;
+                break;
+            }
+        }
+
+        uHandler.ChatMessage(message, id);
+
+        yield return null;
     }
 
     public IEnumerator HideShowInput(bool active)
@@ -492,15 +541,13 @@ public class NetworkHandler : MonoBehaviour
         ProgressBar pBar = progressBar.GetComponent<ProgressBar>();
         ImageSetter imgSetter = imageSetter.GetComponent<ImageSetter>();
 
-        for (int i = 0; i < uHandler.users.Length; i++)
+        for (int i = 0; i < uHandler.users.Count; i++)
         {
             if (uHandler.users[i].GetComponent<UserData>().uName != "")
             {
                 uHandler.ResetUser(i);
             }
         }
-
-        Debug.Log("stop");
 
         pBar.ResetGame(true, false);
         Camera.main.transform.DOMove(new Vector3(-381, 642, -10), 0.5f);
@@ -516,7 +563,7 @@ public class NetworkHandler : MonoBehaviour
 
         UserHandler uHandler = GetComponent<UserHandler>();
 
-        for (int i = 1; i < uHandler.users.Length; i++)
+        for (int i = 1; i < uHandler.users.Count; i++)
         {
             if (uHandler.users[i].GetComponent<UserData>().uName != "")
             {
@@ -548,7 +595,7 @@ public class NetworkHandler : MonoBehaviour
 
         UserHandler uHandler = GetComponent<UserHandler>();
 
-        for (int i = 1; i < uHandler.users.Length; i++)
+        for (int i = 1; i < uHandler.users.Count; i++)
         {
             if (uHandler.users[i].GetComponent<UserData>().uName != "")
             {
@@ -581,6 +628,12 @@ public class NetworkHandler : MonoBehaviour
     public IEnumerator LoadPost(int id)
     {
         imageSetter.GetComponent<ImageSetter>().LoadRandomPost(id);
+        yield return null;
+    }
+
+    public IEnumerator CreateUsers()
+    {
+        uHandler.CreateNormalUsers();
         yield return null;
     }
 
