@@ -10,12 +10,13 @@ public class MenuData : MonoBehaviour
 {
     public GameObject imgSetter, userHandler, progressBar, status, downloadbtn, modusText;
     public GameObject inputName, singleplayerParent, multiplayerParent, colorParent, benitrat0r,
-        benitrat0rDigits;
+        benitrat0rDigits, options, resButton;
     public bool locked = false;
     private bool downloading = false;
     public AnimationCurve curve;
     public static int mode = 0;
     public static int state = 0;
+    private int resolutionMode = 0; //Normal
 
     public enum Modes
     {
@@ -29,6 +30,15 @@ public class MenuData : MonoBehaviour
 
         int diff = PlayerPrefs.GetInt("Player_SP_Diff", 1);
         int mpDiff = PlayerPrefs.GetInt("Player_MP_Diff", 1);
+
+        resolutionMode = PlayerPrefs.GetInt("Player_Resolution", 0);
+
+        if(resolutionMode == 1)
+        { //android only
+#if UNITY_ANDROID
+            Screen.SetResolution(720, 1280, true);
+#endif
+        }
 
         DiffClicked(diff, false);
         DiffClicked(mpDiff, true);
@@ -51,9 +61,16 @@ public class MenuData : MonoBehaviour
 
     public void Benitrat0rClicked()
     {
-        Camera.main.transform.DOMove(new Vector3(-381, 1943, -10), 1f);
+        benitrat0r.SetActive(true);
+        Camera.main.transform.DOMove(new Vector3(-381, 1943, -10), 0.75f);
 
         state = 4;
+
+        Invoke("CheckBenitrat0rMusic", 0.25f);
+    }
+
+    private void CheckBenitrat0rMusic()
+    {
 
         benitrat0r.GetComponent<Benitrat0r>().sound.GetComponent<AudioScript>().BeginPlayAmbient();
         benitrat0r.GetComponent<Benitrat0r>().SetBenis(UserHandler.GetPlayerUserBenis());
@@ -134,6 +151,7 @@ public class MenuData : MonoBehaviour
 
     public void OptionsClicked()
     {
+        options.SetActive(true);
         state = 1;
         Camera.main.transform.DOMove(new Vector3(-381, -665, -10), 0.5f);
     }
@@ -142,6 +160,12 @@ public class MenuData : MonoBehaviour
     {
         state = 0;
         Camera.main.transform.DOMove(new Vector3(-381, 642, -10), 0.5f);
+        Invoke("DisableOptions", 0.5f);
+    }
+
+    private void DisableOptions()
+    {
+        options.SetActive(false);
     }
 
     public void Benitrat0rBack()
@@ -149,6 +173,12 @@ public class MenuData : MonoBehaviour
         state = 0;
         Camera.main.transform.DOMove(new Vector3(-381, 642, -10), 0.5f);
         SetMenuBenisString();
+        Invoke("DisableBenitrat0r", 0.5f);
+    }
+
+    private void DisableBenitrat0r()
+    {
+        benitrat0r.SetActive(false);
     }
 
     public void ChangeUsername()
@@ -333,6 +363,25 @@ public class MenuData : MonoBehaviour
             mode = (int)Modes.versus;
         }
         modusText.GetComponent<TextMeshProUGUI>().text = modetext;
+    }
+
+    public void ChangeRes()
+    {
+#if UNITY_ANDROID
+        if(resolutionMode == 0)
+        {
+            Screen.SetResolution(720, 1280, true);
+            resolutionMode = 1;
+            resButton.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "720p";
+        } else
+        {
+            Screen.SetResolution(1080, 1920, true);
+            resolutionMode = 0;
+            resButton.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Normal";
+        }
+
+        PlayerPrefs.SetInt("Player_Resolution", resolutionMode);
+#endif
     }
 
     private void Update()

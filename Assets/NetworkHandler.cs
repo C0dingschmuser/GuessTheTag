@@ -181,7 +181,7 @@ public class NetworkHandler : MonoBehaviour
             UnityMainThreadDispatcher.Instance().Enqueue(SetStatusText("Verbinde..."));
 
             socketConnection = new TcpClient();
-            var result = socketConnection.BeginConnect("flatterfogel.ddns.net", 6886, null, null);
+            var result = socketConnection.BeginConnect("flatterfogel.ddns.net", 33886, null, null);
 
             var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(4));
             if (success)
@@ -230,7 +230,7 @@ public class NetworkHandler : MonoBehaviour
     private void SendDataLoop()
     {
         socketSenderConnection = new TcpClient();
-        var result = socketSenderConnection.BeginConnect("flatterfogel.ddns.net", 6885, null, null);
+        var result = socketSenderConnection.BeginConnect("flatterfogel.ddns.net", 33885, null, null);
 
         var success = result.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(4));
 
@@ -248,7 +248,7 @@ public class NetworkHandler : MonoBehaviour
                         {
                             Send(clientMessage, socketSenderConnection.GetStream());
 
-                            if(clientMessage.Equals("<-1~>")) //quit
+                            if(clientMessage.Equals("{-1~}")) //quit
                             {
                                 shutdown = true;
                                 state = (int)States.disconnected;
@@ -295,7 +295,7 @@ public class NetworkHandler : MonoBehaviour
     {
         timeout = 4f;
 
-        message = "<" + message + ">";
+        message = "{" + message + "}";
         bool messageSent = false;
 
         if (socketSenderConnection == null)
@@ -322,10 +322,10 @@ public class NetworkHandler : MonoBehaviour
     private void FetchMessage(string message)
     {
 
-        if (message[0].Equals('<') && message[message.Length - 1].Equals('>'))
+        if (message[0].Equals('{') && message[message.Length - 1].Equals('}'))
         { //nachricht ok
-            message = message.Replace("<", "");
-            message = message.Replace(">", "");
+            message = message.Replace("{", "");
+            message = message.Replace("}", "");
 
             //Debug.Log(message);
 

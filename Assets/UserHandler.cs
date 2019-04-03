@@ -200,7 +200,11 @@ public class UserHandler : MonoBehaviour
             royaleNumbers.SetActive(false);
         }
 
-        for(int i = 1; i < uCount; i++)
+#if UNITY_ANDROID
+        Firebase.Analytics.FirebaseAnalytics.LogEvent("PlayBotRound", "Mode", MenuData.mode);
+#endif
+
+        for (int i = 1; i < uCount; i++)
         {
             string name = "";
 
@@ -436,6 +440,9 @@ public class UserHandler : MonoBehaviour
                     }
 
                     Debug.Log(benis);
+#if UNITY_ANDROID
+                    Firebase.Analytics.FirebaseAnalytics.LogEvent("BotRoundOver", "WinBenis", (int)benis);
+#endif
                     SetGlobalUserBenis(GetPlayerUserBenis() + (ulong)benis);
                 }
             }

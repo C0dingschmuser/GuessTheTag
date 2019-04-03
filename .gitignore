@@ -17,13 +17,37 @@
 [Aa]ssets/TextMesh*Pro/
 [Aa]ssets/UnityAds/
 [Aa]ssets/Auto*Letterbox/
+[Aa]ssets/Editor*Default*Resources/Firebase.meta
+[Aa]ssets/Editor*Default*Resources/Firebase/
+[Aa]ssets/PlayServicesResolver/
+[Aa]ssets/Plugins/Android/*.jar
+[Aa]ssets/Plugins/Android/*.meta
+[Aa]ssets/Plugins/Android/*.aar
+[Aa]ssets/Plugins/Android/Firebase/
+[Aa]ssets/Plugins/iOS.meta
+[Aa]ssets/Plugins/iOS/
+[Aa]ssets/Plugins/x86_64/
+[Aa]ssets/x86_64.meta
+[Aa]ssets/Parse.meta
+[Aa]ssets/google-services.json.meta
+[Aa]ssets/Firebase.meta
+[Aa]ssets/StreamingAssets/
+[Aa]ssets/StreamingAssets.meta
+[Aa]ssets/Editor*Default*Resources.meta
+[Aa]ssets/Parse/
 [Aa]ssets/Demigiant/
 [Aa]ssets/UnityMainThreadDispatcher/
+[Aa]ssets/Firebase/
+[Aa]ssets/google-services.json
 [Aa]ssets/Demigiant.meta
+[Aa]ssets/PlayServicesResolver.meta
 [Aa]ssets/TextMesh*Pro.meta
 [Aa]ssets/UnityMainThreadDispatcher.meta
 [Aa]ssets/Resources/DOTweenSettings.asset
 [Aa]ssets/Resources/DOTweenSettings.asset.meta
+[Pp]rojectSettings/AndroidResolverDependencies.xml
+[Pp]rojectSettings/GvhProjectSettings.xml
+[Pp]rojectSettings/ProjectSettings.asset
 
 # Visual Studio cache directory
 .vs/
@@ -63,3 +87,7 @@ sysinfo.txt
 
 # Crashlytics generated file
 crashlytics-build.properties
+Assets/Plugins/x86_64.meta
+ProjectSettings/ProjectSettings.asset
+ProjectSettings/ProjectSettings.asset
+ProjectSettings/ProjectSettings.asset

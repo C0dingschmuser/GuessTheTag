@@ -23,7 +23,7 @@ public class Benitrat0r : MonoBehaviour
     private List<GameObject> slotObjects = new List<GameObject>();
     public float[] setColSpeeds = new float[5];
     private int[] winRow = new int[5];
-    private int winStart = -1, tempWinCount = 0, bet = 16, winBenis = 0;
+    private int winStart = -1, tempWinCount = 0, bet = 16, winBenis = 0, tempWinBenis = 0;
     private int betBackup = 19, winBackup = 3;
     private bool spinning = false, spinSoundPlayed = false, backPressed = false;
 
@@ -90,6 +90,7 @@ public class Benitrat0r : MonoBehaviour
         SetWinBenis(0);
 
         tempWinCount = 0;
+        tempWinBenis = 0;
         winStart = -1;
 
         foreach(Transform child in benisParent.transform)
@@ -107,37 +108,31 @@ public class Benitrat0r : MonoBehaviour
 
     private int GetSlotType()
     {
-        int ran = Random.Range(100, 1050);
+        int ran = Random.Range(100, 1002);
 
         int type = (int)SlotPrefab.SlotTypes.fliese;
 
-        if(ran >= 300 && ran < 400)
+        if(ran >= 300 && ran < 450)
         {
             type = (int)SlotPrefab.SlotTypes.plug;
-        } else if(ran >= 400 && ran < 500)
+        } else if(ran >= 450 && ran < 600)
         {
             type = (int)SlotPrefab.SlotTypes.pepe;
-        } else if(ran >= 500 && ran < 600)
+        } else if(ran >= 600 && ran < 750)
         {
             type = (int)SlotPrefab.SlotTypes.ofen;
-        } else if(ran >= 600 && ran < 700)
-        {
-            //type = (int)SlotPrefab.SlotTypes.ban;
-        } else if(ran >= 700 && ran < 800)
+        } else if(ran >= 750 && ran < 850)
         {
             type = (int)SlotPrefab.SlotTypes.nyan;
-        } else if(ran >= 800 && ran < 850)
+        } else if(ran >= 850 && ran < 950)
         {
             type = (int)SlotPrefab.SlotTypes.ball;
         } else if(ran >= 950 && ran < 1000)
         {
-            //type = (int)SlotPrefab.SlotTypes.pr0mium;
-        } else if(ran >= 1000 && ran < 1040)
-        {
             type = (int)SlotPrefab.SlotTypes.pr0gramm;
-        } else if(ran >= 1040 && ran < 1050)
+        } else if(ran >= 1000 && ran < 1002)
         {
-            if (Random.Range(0, 25) == 0)
+            if (Random.Range(0, 2) == 0)
             {
                 type = (int)SlotPrefab.SlotTypes.reich;
             }
@@ -244,6 +239,16 @@ public class Benitrat0r : MonoBehaviour
     {
         winBenis = wB;
         winBackup = wB + 3;
+        tempWinBenis = wB;
+
+#if UNITY_ANDROID
+
+        if (wB > 0)
+        {
+            Firebase.Analytics.FirebaseAnalytics.LogEvent("Benitrat0r_Win", "Benis", wB);
+        }
+
+#endif
     }
 
     public void Spin()
@@ -258,6 +263,12 @@ public class Benitrat0r : MonoBehaviour
 
         SetBenis(UserHandler.GetPlayerUserBenis());
 
+#if UNITY_ANDROID
+
+        Firebase.Analytics.FirebaseAnalytics.LogEvent("Benitrat0r_Spin", "BenisBet", bet);
+
+#endif
+
         ResetSpin();
 
         int type = GetSlotType();
@@ -268,6 +279,13 @@ public class Benitrat0r : MonoBehaviour
 
         if(winType >= 32 && winType < 66)
         { //3er kombo
+
+#if UNITY_ANDROID
+
+            Firebase.Analytics.FirebaseAnalytics.LogEvent("Benitrat0r_3er");
+
+#endif
+
             win = 1;
 
             int startPos = Random.Range(0, 3);
@@ -281,6 +299,12 @@ public class Benitrat0r : MonoBehaviour
         { //4er kombo
             win = 2;
 
+#if UNITY_ANDROID
+
+            Firebase.Analytics.FirebaseAnalytics.LogEvent("Benitrat0r_4er");
+
+#endif
+
             int startPos = Random.Range(0, 2);
             winStart = startPos;
 
@@ -293,6 +317,10 @@ public class Benitrat0r : MonoBehaviour
             if (Random.Range(0, 2) == 0)
             {
                 win = 3;
+
+#if UNITY_ANDROID
+                Firebase.Analytics.FirebaseAnalytics.LogEvent("Benitrat0r_5er");
+#endif
 
                 winStart = 0;
 
@@ -439,6 +467,12 @@ public class Benitrat0r : MonoBehaviour
         newBlus.GetComponent<Rigidbody2D>().AddForce(force * 100);
 
         sound.GetComponent<AudioScript>().PlayCoinSound();
+
+        tempWinBenis--;
+        if(tempWinBenis <= 0)
+        {
+            CancelInvoke("SpawnBlus");
+        }
     }
 
     public void IncreaseBet()

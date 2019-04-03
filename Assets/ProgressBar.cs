@@ -92,6 +92,11 @@ public class ProgressBar : MonoBehaviour
             if(userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().knockout ||
                 userPos == 0)
             { //benis gibts nur wenn ausgeknocked oder wenn platz 1
+
+#if UNITY_ANDROID
+                Firebase.Analytics.FirebaseAnalytics.LogEvent("BotRoundOver", "WinBenis", (int)benis);
+#endif
+
                 UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + (ulong)benis);
             }
         }

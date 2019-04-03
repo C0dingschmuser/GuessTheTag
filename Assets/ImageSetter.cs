@@ -87,7 +87,7 @@ public class ImageSetter : MonoBehaviour
             return;
         }
 
-        string[] tags = postSplit[4].Split(',');
+        string[] tags = postSplit[4].Split('»');
 
         if(delTags)
         {
@@ -439,7 +439,7 @@ public class ImageSetter : MonoBehaviour
     {
         bool ok = true;
 
-        string sonder = ".-!%^üöäÜÖÄß=()/";
+        string sonder = "<>,.-!%^üöäÜÖÄß=()/";
 
         foreach(char c in message)
         {
