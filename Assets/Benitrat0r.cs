@@ -108,33 +108,51 @@ public class Benitrat0r : MonoBehaviour
 
     private int GetSlotType()
     {
-        int ran = Random.Range(100, 1002);
+        int ran = Random.Range(0, 11);
 
         int type = (int)SlotPrefab.SlotTypes.fliese;
 
-        if(ran >= 300 && ran < 450)
-        {
-            type = (int)SlotPrefab.SlotTypes.plug;
-        } else if(ran >= 450 && ran < 600)
-        {
-            type = (int)SlotPrefab.SlotTypes.pepe;
-        } else if(ran >= 600 && ran < 750)
-        {
-            type = (int)SlotPrefab.SlotTypes.ofen;
-        } else if(ran >= 750 && ran < 850)
-        {
-            type = (int)SlotPrefab.SlotTypes.nyan;
-        } else if(ran >= 850 && ran < 950)
-        {
-            type = (int)SlotPrefab.SlotTypes.ball;
-        } else if(ran >= 950 && ran < 1000)
-        {
-            type = (int)SlotPrefab.SlotTypes.pr0gramm;
-        } else if(ran >= 1000 && ran < 1002)
-        {
-            if (Random.Range(0, 2) == 0)
+        /*------CHANCEN
+
+        0-3 40% Fliese
+        4-7 30% Plug/Ofen
+        8-9 20% Pepe/Nyan/ball
+        10 10%  Pr0gramm/Reich
+
+        CHANCEN------*/
+
+        if (ran >= 4 && ran < 8)
+        { //4-7
+            if(Random.Range(0,2) == 0)
             {
+                type = (int)SlotPrefab.SlotTypes.plug;
+            } else
+            {
+                type = (int)SlotPrefab.SlotTypes.ofen;
+            }
+        } else if(ran >= 8 && ran < 10)
+        {
+            int tran = Random.Range(0, 3);
+            switch(tran)
+            {
+                case 0:
+                    type = (int)SlotPrefab.SlotTypes.pepe;
+                    break;
+                case 1:
+                    type = (int)SlotPrefab.SlotTypes.nyan;
+                    break;
+                case 2:
+                    type = (int)SlotPrefab.SlotTypes.ball;
+                    break;
+            }
+        } else if(ran == 10)
+        {
+            if(Random.Range(0,6) == 0)
+            { //reich
                 type = (int)SlotPrefab.SlotTypes.reich;
+            } else
+            {
+                type = (int)SlotPrefab.SlotTypes.pr0gramm;
             }
         }
 
