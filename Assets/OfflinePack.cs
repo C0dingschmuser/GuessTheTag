@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using UnityEngine;
 using UnityEngine.Networking;
+using TMPro;
 
 public class OfflinePack : MonoBehaviour
 {
@@ -12,7 +13,9 @@ public class OfflinePack : MonoBehaviour
     private bool doneDownload = false, running = false;
     private ulong dlSize = 77069801; //posts.zip größe in bytes
     public float dl_progress = 0f;
-    public GameObject menu;
+    public GameObject menu, postInfo, updateText;
+    float version = 0.3f;
+    int postID = 3126416;
 
     // Start is called before the first frame update
     void Start()
@@ -21,6 +24,10 @@ public class OfflinePack : MonoBehaviour
         {
             offlineInstalled = true;
         }
+
+        postID = PlayerPrefs.GetInt("PostID", 3126416);
+
+        StartCoroutine(GetData());
     }
 
     public void DownloadPack()
@@ -34,6 +41,59 @@ public class OfflinePack : MonoBehaviour
         {
             archive.ExtractToDirectory(extractPath);
         }
+    }
+
+    public void OpenPost()
+    {
+        DontOpenpost();
+        string link = "https://pr0gramm.com/new/" + postID.ToString();
+
+        Application.OpenURL(link);
+    }
+
+    public void DontOpenpost()
+    {
+        postInfo.SetActive(false);
+    }
+
+    IEnumerator GetData()
+    { //checkt updates & co
+        string link = "https://drive.google.com/uc?export=download&id=10tSzJkmI0Xj8njpHOff2HtnMpn9bIhAY";
+        UnityWebRequest www = UnityWebRequest.Get(link);
+        www.downloadHandler = new DownloadHandlerBuffer();
+
+        yield return www.SendWebRequest();
+
+        if(www.isNetworkError || www.isHttpError)
+        {
+            Debug.Log(www.error);
+        } else
+        {
+            string text = www.downloadHandler.text;
+            string[] split = text.Split('|');
+
+            float newVersion = (float)Int32.Parse(split[0]) / 10f;
+
+            if(newVersion > version)
+            { //update
+                updateText.SetActive(true);
+                //updateText.GetComponent<TextMeshProUGUI>().text = newVersion.ToString();
+            } else
+            {
+                updateText.SetActive(false);
+            }
+
+            int newPostID = Int32.Parse(split[1]);
+
+            if(newPostID != postID)
+            { //neuer post
+                PlayerPrefs.SetInt("PostID", newPostID);
+                postID = newPostID;
+                postInfo.SetActive(true);
+            }
+        }
+
+        yield return null;
     }
 
     IEnumerator GetPack()

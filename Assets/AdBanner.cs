@@ -1,28 +1,53 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
+using System.Collections;
 using UnityEngine.Advertisements;
+using UnityEngine.UI;
+using TMPro;
 
 public class AdBanner : MonoBehaviour
 {
+    public GameObject benitrat0r, adBtn;
+    const string gameID = "3063285";
 
-    string gameID = "3063285";
-    string placementID = "banner";
-
-    // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        //Advertisement.Initialize(gameID, true);
-        //StartCoroutine(ShowBannerWhenReady());
-        //StartCoroutine(ShowBanner2WhenReady());
+        Advertisement.Initialize(gameID);
+
+        if (Application.internetReachability == NetworkReachability.NotReachable)
+        {
+            adBtn.GetComponent<Button>().interactable = false;
+        }
     }
 
-    IEnumerator ShowBannerWhenReady()
+    public void ShowAd()
     {
-        while (!Advertisement.IsReady("banner"))
+        StartCoroutine(ShowRewardedAd());
+    }
+
+    IEnumerator ShowRewardedAd()
+    {
+
+        while(!Advertisement.IsReady("rewardedVideo"))
         {
-            yield return new WaitForSeconds(0.5f);
+            yield return null;
         }
-        Advertisement.Banner.Show(placementID);
+
+        var options = new ShowOptions { resultCallback = HandleShowResult };
+        Advertisement.Show("rewardedVideo", options);
+    }
+
+    private void HandleShowResult(ShowResult result)
+    {
+
+        switch (result)
+        {
+            case ShowResult.Finished:
+#if UNITY_ANDROID
+                Firebase.Analytics.FirebaseAnalytics.LogEvent("AdShowed");
+#endif
+                UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + 2048);
+                benitrat0r.GetComponent<Benitrat0r>().SetBenis(UserHandler.GetPlayerUserBenis());
+                break;
+        }
     }
 }

@@ -10,7 +10,7 @@ public class UserHandler : MonoBehaviour
     public List<GameObject> users = new List<GameObject>();
     public int ownIndex = 0;
     public GameObject userPrefab, royaleUserPrefab, imageSetter, progressBar, topBar, royaleNumbers, benitrat0r,
-        normalMenu;
+        normalMenu, sortNumbers;
     public static GameObject menu;
     public Vector3[] userPositions, statPositions, royaleUserPositions;
     public Color[] userColors;
@@ -109,6 +109,26 @@ public class UserHandler : MonoBehaviour
         }
     }
 
+    public void CreateSortUsers()
+    {
+        DeleteUsers();
+
+        for (int i = 0; i < 4; i++)
+        {
+            GameObject newUser = Instantiate(royaleUserPrefab);
+            newUser.transform.SetParent(this.transform);
+            newUser.transform.position = new Vector3(196, -105.55f, 0);
+            newUser.transform.localScale = new Vector3(1.5f, 1.5f, 1.5f);
+
+            if (i == 0)
+            {
+                newUser.GetComponent<UserData>().user = true;
+            }
+
+            users.Add(newUser);
+        }
+    }
+
     public void SetUser(int pos, string name, int reused = 0)
     {
         UserData uData = users[pos].GetComponent<UserData>();
@@ -122,6 +142,9 @@ public class UserHandler : MonoBehaviour
         } else if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
         {
             users[pos].transform.position = new Vector3(196, -105.55f, 0);
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            users[pos].transform.position = new Vector3(621, 330.45f - (pos * 85), 0);
         }
 
         users[pos].GetComponent<UserData>().RoundFadeIn();
@@ -200,6 +223,14 @@ public class UserHandler : MonoBehaviour
             royaleNumbers.SetActive(false);
         }
 
+        if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            sortNumbers.SetActive(true);
+        } else
+        {
+            sortNumbers.SetActive(true);
+        }
+
 #if UNITY_ANDROID
         Firebase.Analytics.FirebaseAnalytics.LogEvent("PlayBotRound", "Mode", MenuData.mode);
 #endif
@@ -240,6 +271,12 @@ public class UserHandler : MonoBehaviour
         {
             SortBattleRoyale();
             foreach(GameObject user in users)
+            {
+                user.GetComponent<UserData>().UpdatePostCount();
+            }
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            foreach (GameObject user in users)
             {
                 user.GetComponent<UserData>().UpdatePostCount();
             }
@@ -385,6 +422,8 @@ public class UserHandler : MonoBehaviour
             }
         }
 
+        users[0].GetComponent<UserData>().endPos = sList.IndexOf(users[0]);
+
         if(won)
         {
             if(networkGameRunning)
@@ -445,6 +484,33 @@ public class UserHandler : MonoBehaviour
 #endif
                     SetGlobalUserBenis(GetPlayerUserBenis() + (ulong)benis);
                 }
+            } else if(networkGameRunning)
+            {
+                float benis = sList[i].GetComponent<UserData>().benis;
+
+                switch (i)
+                {
+                    case 0:
+                        benis *= 2;
+                        break;
+                    case 1:
+                        benis *= 1.5f;
+                        break;
+                    case 2:
+                        benis *= 1.25f;
+                        break;
+                    case 3:
+                        benis *= 1.1f;
+                        break;
+                }
+
+                benis *= 3; //MP-Bonus
+
+                SetGlobalUserBenis(GetPlayerUserBenis() + (ulong)benis);
+
+#if UNITY_ANDROID
+                Firebase.Analytics.FirebaseAnalytics.LogEvent("MPRoundOver", "WinBenis", (int)benis);
+#endif
             }
 
             transform.GetChild(0).GetChild(i).GetChild(0).GetComponent<TextMeshProUGUI>().text =
@@ -739,8 +805,10 @@ public class UserHandler : MonoBehaviour
                             users[i].GetComponent<UserData>().royaleGuessed[tpos] = true;
 
                             //anzeige sortieren
-
-                            SortBattleRoyale();
+                            if (MenuData.mode == (int)MenuData.Modes.battleRoyale)
+                            {
+                                SortBattleRoyale();
+                            }
                         }
                     }
                 } else
@@ -847,7 +915,8 @@ public class UserHandler : MonoBehaviour
 
             users[0].GetComponent<UserData>().timer += Time.deltaTime;
 
-            if (MenuData.mode == (int)MenuData.Modes.battleRoyale)
+            if (MenuData.mode == (int)MenuData.Modes.battleRoyale ||
+                MenuData.mode == (int)MenuData.Modes.sort)
             {
                 HandleBotRoyale();
                 return;

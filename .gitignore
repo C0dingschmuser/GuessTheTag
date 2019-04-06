@@ -88,6 +88,15 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 Assets/Plugins/x86_64.meta
-ProjectSettings/ProjectSettings.asset
-ProjectSettings/ProjectSettings.asset
-ProjectSettings/ProjectSettings.asset
+Assets/Plugins/Android/AndroidManifest.xml
+Assets/Editor/Resources.meta
+Assets/Editor/Resources/Landscape.png
+Assets/Editor/Resources/Landscape.png.meta
+Assets/Editor/Resources/LandscapeMon.png
+Assets/Editor/Resources/LandscapeMon.png.meta
+Assets/Editor/Resources/Portrait.png
+Assets/Editor/Resources/Portrait.png.meta
+Assets/Editor/Resources/PortraitMon.png
+Assets/Editor/Resources/PortraitMon.png.meta
+Assets/Editor/Resources/Purchase.png
+Assets/Editor/Resources/Purchase.png.meta

@@ -13,12 +13,36 @@ public class TagData : MonoBehaviour
     private float colorFadeLength = 0.75f;
     public List<Color> colorBuffer = new List<Color>();
     public AnimationCurve curve;
+    public GameObject imageSetter = null;
+    public int realPos = -1, sortPos = -1;
 
     private bool inUse = false;
 
     private void DeactivateUse()
     {
         inUse = false;
+    }
+
+    public void Clicked()
+    {
+        if(MenuData.mode != (int)MenuData.Modes.sort || imageSetter == null)
+        {
+            return;
+        }
+
+        imageSetter.GetComponent<ImageSetter>().TagClicked(this.gameObject);
+    }
+
+    public bool CorrectGuessed()
+    {
+        bool ok = false;
+
+        if(realPos == sortPos)
+        {
+            ok = true;
+        }
+
+        return ok;
     }
 
     private void Update()

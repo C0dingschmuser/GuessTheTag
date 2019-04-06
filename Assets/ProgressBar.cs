@@ -7,7 +7,7 @@ using UnityEngine.UI;
 public class ProgressBar : MonoBehaviour
 {
     public GameObject imageSetter, userHandler, networkHandler, userKnockoutObj;
-    public bool gameActive = false, royaleShowTags = false;
+    public bool gameActive = false, royaleShowTags = false, sortShowTags = false;
     public float timer = 0;
     private int originalTimer;
     private bool resetInvoked = false, backPressed = false;
@@ -63,7 +63,13 @@ public class ProgressBar : MonoBehaviour
     {
         gameActive = false;
 
-        if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
+        sortShowTags = false;
+        royaleShowTags = false;
+
+        int diff = userHandler.GetComponent<UserHandler>().diff;
+        float benis = userHandler.GetComponent<UserHandler>().GetUserBenis();
+
+        if (MenuData.mode == (int)MenuData.Modes.battleRoyale)
         { //calc benis
             List<int> uList = userHandler.GetComponent<UserHandler>().SortBattleRoyale();
 
@@ -71,12 +77,8 @@ public class ProgressBar : MonoBehaviour
 
             int mP = 25 - userPos;
 
-            float benis = userHandler.GetComponent<UserHandler>().GetUserBenis();
-
             benis *= mP / 2;
             benis /= 5;
-
-            int diff = userHandler.GetComponent<UserHandler>().diff;
 
             if(diff == 0)
             {
@@ -99,6 +101,40 @@ public class ProgressBar : MonoBehaviour
 
                 UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + (ulong)benis);
             }
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            benis = benis / 3f;
+
+            switch (diff)
+            { //diff bonus
+                case 1: //Normal
+                    benis *= 1.1f;
+                    break;
+                case 2: //Schwer
+                    benis *= 1.25f;
+                    break;
+            }
+
+            int pos = userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().endPos;
+
+            switch(pos)
+            { //end pos bonus
+                case 0: //nr 1
+                    benis *= 1.3f;
+                    break;
+                case 1:
+                    benis *= 1.2f;
+                    break;
+                case 2:
+                    benis *= 1.1f;
+                    break;
+            }
+
+#if UNITY_ANDROID
+            Firebase.Analytics.FirebaseAnalytics.LogEvent("BotRoundOver", "WinBenis", (int)benis);
+#endif
+            Debug.Log(benis);
+            UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + (ulong)benis);
         }
 
         imageSetter.GetComponent<ImageSetter>().ResetGame(true);
@@ -125,7 +161,8 @@ public class ProgressBar : MonoBehaviour
             userHandler.GetComponent<UserHandler>().botGameCount++;
 
             if (userHandler.GetComponent<UserHandler>().botGameCount > 1 || quit || 
-                MenuData.mode == (int)MenuData.Modes.battleRoyale)
+                MenuData.mode == (int)MenuData.Modes.battleRoyale ||
+                MenuData.mode == (int)MenuData.Modes.sort)
             { //verlasse spiel
                 BotQuit();
 
@@ -152,7 +189,10 @@ public class ProgressBar : MonoBehaviour
     {
 
         imageSetter.GetComponent<ImageSetter>().thinkDone = true;
-        imageSetter.GetComponent<ImageSetter>().inputObj.SetActive(true);
+        if (MenuData.mode != (int)MenuData.Modes.sort)
+        {
+            imageSetter.GetComponent<ImageSetter>().inputObj.SetActive(true);
+        }
         imageSetter.GetComponent<ImageSetter>().FadeInTags();
 
         userHandler.GetComponent<UserHandler>().thinkDone = true;
@@ -175,7 +215,7 @@ public class ProgressBar : MonoBehaviour
                 seconds = 30;
             }
         }
-        else
+        else if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
         { //sekunden bis player knockout
             seconds = 30; //leicht
             if (diff == 1)
@@ -186,6 +226,9 @@ public class ProgressBar : MonoBehaviour
             { //schwer
                 seconds = 10; //10 original
             }
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            seconds = 100;
         }
         timer = seconds;
         originalTimer = seconds;
@@ -207,6 +250,11 @@ public class ProgressBar : MonoBehaviour
 
             royaleShowTags = true;
 
+            imageSetter.GetComponent<ImageSetter>().LoadRandomPost(-1, true);
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+
+            sortShowTags = true;
             imageSetter.GetComponent<ImageSetter>().LoadRandomPost(-1, true);
         }
     }
@@ -284,6 +332,11 @@ public class ProgressBar : MonoBehaviour
         }
 
         SetTimer();
+    }
+
+    public void StartSortReset()
+    {
+        StartReset();
     }
 
     private void ResetBackPressed()
@@ -372,9 +425,12 @@ public class ProgressBar : MonoBehaviour
                     if (MenuData.mode == (int)MenuData.Modes.versus)
                     {
                         StartReset();
-                    } else
+                    } else if(MenuData.mode == (int)MenuData.Modes.battleRoyale)
                     {
                         StartRoyaleReset();
+                    } else if(MenuData.mode == (int)MenuData.Modes.sort)
+                    {
+                        StartSortReset();
                     }
                 }
             }

@@ -5,23 +5,25 @@ using DG.Tweening;
 using TMPro;
 using UnityEngine.UI;
 using System;
+using Random = UnityEngine.Random;
 
 public class MenuData : MonoBehaviour
 {
     public GameObject imgSetter, userHandler, progressBar, status, downloadbtn, modusText;
     public GameObject inputName, singleplayerParent, multiplayerParent, colorParent, benitrat0r,
-        benitrat0rDigits, options, resButton;
+        benitrat0rDigits, options, resButton, blusObj, notifications;
     public bool locked = false;
     private bool downloading = false;
     public AnimationCurve curve;
     public static int mode = 0;
     public static int state = 0;
-    private int resolutionMode = 0; //Normal
+    private int resolutionMode = 0, menuBenisCount = 0; //Normal
 
     public enum Modes
     {
         versus = 0,
         battleRoyale = 1,
+        sort = 2,
     }
 
     private void Start()
@@ -33,12 +35,42 @@ public class MenuData : MonoBehaviour
 
         resolutionMode = PlayerPrefs.GetInt("Player_Resolution", 0);
 
-        if(resolutionMode == 1)
-        { //android only
+        int first = PlayerPrefs.GetInt("FirstStartup", 1);
+        PlayerPrefs.SetInt("FirstStartup", 0);
+
 #if UNITY_ANDROID
-            Screen.SetResolution(720, 1280, true);
-#endif
+
+        if(first == 1)
+        {
+            Firebase.Analytics.FirebaseAnalytics.SetUserProperty("WantsMessages", "1");
         }
+
+        int wants = PlayerPrefs.GetInt("WantsMessages", 1);
+
+        string message = "";
+
+        if (wants == 1)
+        {
+            message = "Ja";
+        } else
+        {
+            message = "Neim";
+        }
+        notifications.transform.GetChild(1).GetChild(0).GetComponent<TextMeshProUGUI>().text = message;
+
+        if (resolutionMode == 0)
+        {
+            Screen.SetResolution(720, 1280, true);
+            resolutionMode = 1;
+            resButton.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "720p";
+        }
+        else
+        {
+            Screen.SetResolution(1080, 1920, true);
+            resolutionMode = 0;
+            resButton.transform.GetChild(0).GetComponent<TextMeshProUGUI>().text = "Normal";
+        }
+#endif
 
         DiffClicked(diff, false);
         DiffClicked(mpDiff, true);
@@ -50,7 +82,66 @@ public class MenuData : MonoBehaviour
             status.GetComponent<TextMeshProUGUI>().text = "Status: Installiert";
         }
         SetMenuBenisString();
+        SpawnMenuBlus();
+    }
 
+    public void PushNotificationsClicked()
+    {
+#if UNITY_ANDROID
+        int wants = PlayerPrefs.GetInt("WantsMessages", 1);
+
+        string message = "";
+
+        if(wants == 1)
+        {
+            wants = 0;
+            message = "Neim";
+            Firebase.Analytics.FirebaseAnalytics.SetUserProperty("WantsMessages", "0");
+        } else
+        {
+            wants = 1;
+            message = "Ja";
+            Firebase.Analytics.FirebaseAnalytics.SetUserProperty("WantsMessages", "1");
+        }
+
+        PlayerPrefs.SetInt("WantsMessages", wants);
+        notifications.transform.GetChild(1).GetChild(0).GetComponent<TextMeshProUGUI>().text = message;
+#endif
+    }
+
+    public void SpawnMenuBlus(int click = 0)
+    {
+        float newX = Random.Range(-702f, -59f);
+        float newY = Random.Range(712.103f, 1103.103f);
+
+        if(click > 0)
+        {
+            ulong benis = UserHandler.GetPlayerUserBenis();
+            UserHandler.SetGlobalUserBenis(benis + 1);
+            menuBenisCount++;
+        }
+
+        Vector3 newPos = new Vector3(newX, newY);
+        blusObj.SetActive(false);
+        blusObj.transform.position = newPos;
+        Invoke("ShowMenuBlus", 0.25f);
+    }
+
+    private void ShowMenuBlus()
+    {
+        blusObj.SetActive(true);
+        Color c = blusObj.transform.GetChild(0).GetComponent<Image>().color;
+        c.a = 0;
+        blusObj.transform.GetChild(0).GetComponent<Image>().color = c;
+
+        blusObj.transform.GetChild(0).GetComponent<Image>().DOFade(1, 0.25f);
+    }
+
+    private void OnApplicationQuit()
+    {
+#if UNITY_ANDROID
+        Firebase.Analytics.FirebaseAnalytics.LogEvent("MenuBenis", "Benis", menuBenisCount);
+#endif
     }
 
     public void SetMenuBenisString()
@@ -104,12 +195,17 @@ public class MenuData : MonoBehaviour
 
         state = 2;
 
-        if (mode == (int)Modes.versus)
+        switch(mode)
         {
-            userHandler.GetComponent<UserHandler>().CreateNormalUsers();
-        } else
-        {
-            userHandler.GetComponent<UserHandler>().CreateRoyaleUsers();
+            case (int)Modes.versus:
+                userHandler.GetComponent<UserHandler>().CreateNormalUsers();
+                break;
+            case (int)Modes.battleRoyale:
+                userHandler.GetComponent<UserHandler>().CreateRoyaleUsers();
+                break;
+            case (int)Modes.sort:
+                userHandler.GetComponent<UserHandler>().CreateSortUsers();
+                break;
         }
 
         GameObject pr0Img = imgSetter.transform.GetChild(0).gameObject;
@@ -359,6 +455,10 @@ public class MenuData : MonoBehaviour
             modetext = "BRoyale  20+ Spieler";
             mode = (int)Modes.battleRoyale;
         } else if(mode == (int)Modes.battleRoyale)
+        {
+            mode = (int)Modes.sort;
+            modetext = "Tagreihenfolge";
+        } else if(mode == (int)Modes.sort)
         {
             mode = (int)Modes.versus;
         }

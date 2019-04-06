@@ -9,7 +9,7 @@ using DG.Tweening;
 public class UserData : MonoBehaviour
 {
     public string uName = "";
-    public int benis = 0, internalDiff = 0, postsCompleted = 0;
+    public int benis = 0, internalDiff = 0, postsCompleted = 0, endPos = -1;
     private int benisBackup = 4;
     public float timer = 0, originalTimer = 0;
     public bool guessedAll = false;
@@ -120,6 +120,22 @@ public class UserData : MonoBehaviour
             {
                 transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontSize = 8;
             }
+        } else if(MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontSize = 14;
+
+            if (name.Length > 10 && name.Length < 14)
+            {
+                transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontSize = 12;
+            }
+            else if (name.Length > 13 && name.Length < 17)
+            {
+                transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontSize = 10;
+            }
+            else if (name.Length > 16)
+            {
+                transform.GetChild(0).GetComponent<TextMeshProUGUI>().fontSize = 8;
+            }
         }
 
     }
@@ -132,6 +148,10 @@ public class UserData : MonoBehaviour
         } else
         {
             this.benis += benis;
+            if(this.benis < 0)
+            {
+                this.benis = 0;
+            }
         }
         benisBackup = this.benis + 4;
         transform.GetChild(1).GetComponent<TextMeshProUGUI>().text = "B " + this.benis.ToString();

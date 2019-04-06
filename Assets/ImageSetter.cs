@@ -20,13 +20,14 @@ public class ImageSetter : MonoBehaviour
         imageLoaded = false, thinkDone = false, zoomEnabled = false, chatMode = false;
     public List<GameObject> tagObjs = new List<GameObject>();
     public float posX, posYtop, posYbottom;
-    public Transform tagParent, pointParent;
+    public Transform tagParent, pointParent, targetLeft, targetRight;
     public TextAsset postData;
     private string[] postList;
     Color hideColor = new Color32(68, 68, 68, 255);
     public AnimationCurve curve;
     public TMP_InputField inputFieldRef;
     private bool input_wasFocused = false;
+    private int tempTagCount = 0;
     TouchScreenKeyboard keyboard;
 
     // Start is called before the first frame update
@@ -65,6 +66,85 @@ public class ImageSetter : MonoBehaviour
         inputActivated = false;
     }
 
+    public void TagClicked(GameObject tag)
+    {
+        tag.transform.DOMove(new Vector3(68, 296.35f - (tempTagCount * 72)), 0.25f);
+        tag.GetComponent<Button>().enabled = false;
+        tag.GetComponent<TagData>().sortPos = tempTagCount;
+
+        tempTagCount++;
+
+        if(tempTagCount > 3)
+        {
+            SortRoundEnd();
+        }
+    }
+
+    private void SortRoundEnd()
+    {
+        int correct = 0;
+
+        int offset = 50;
+        int diff = userHandler.GetComponent<UserHandler>().diff;
+
+        if (diff == 0)
+        {
+            offset = 25;
+        }
+        else if (diff == 2)
+        {
+            offset = 75;
+        }
+
+        float addbenis = 0;
+
+        for (int i = 0; i < tagObjs.Count; i++)
+        {
+            if(tagObjs[i].GetComponent<TagData>().CorrectGuessed())
+            {
+                correct++;
+                tagObjs[i].GetComponent<TagData>().colorBuffer.Add(Color.green);
+                addbenis += (tagObjs.Count - tagObjs[i].GetComponent<TagData>().realPos) * offset;
+            } else
+            {
+                tagObjs[i].GetComponent<TagData>().colorBuffer.Add(Color.red);
+                tagObjs[i].transform.DOMove(
+                    new Vector3(68, 296.35f - (tagObjs[i].GetComponent<TagData>().realPos * 72)), 0.25f);
+            }
+        }
+
+        if(correct > 2)
+        {
+            addbenis *= 1.1f;
+        } else if(correct > 3)
+        {
+            addbenis *= 1.25f;
+        } else
+        {
+            if (correct < 2)
+            {
+                addbenis = -offset * (tagObjs.Count - correct);
+            }
+            addbenis /= 2;
+        }
+
+        tempTagCount = 0;
+
+        if(addbenis != 0)
+        {
+            userHandler.GetComponent<UserHandler>().SetBenisRaw((int)addbenis);
+        }
+
+        userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().postsCompleted++;
+        userHandler.GetComponent<UserHandler>().users[0].GetComponent<UserData>().UpdatePostCount();
+        Invoke("NextRound", 1.5f);
+    }
+
+    private void NextRound()
+    {
+        progressBar.GetComponent<ProgressBar>().SkipRound();
+    }
+
     public void LoadRandomPost(int overrideID = -1, bool delTags = false)
     {
         int pCount = Random.Range(0, 512);
@@ -101,13 +181,51 @@ public class ImageSetter : MonoBehaviour
 
         int maxLength = 4;
 
+        List<GameObject> order = new List<GameObject>();
+
         for(int i = 0; i < maxLength; i++)
         {
             GameObject tag = Instantiate(tagPrefab, tagParent);
-            tagObjs.Add(tag);
 
-            SetTag(i, tags[i]);
+            if (MenuData.mode != (int)MenuData.Modes.sort)
+            {
+                tagObjs.Add(tag);
+                SetTag(i, tags[i]);
+            } else
+            {
+                order.Add(tag);
+            }
+
+            tag.GetComponent<TagData>().realPos = i;
+            tag.GetComponent<TagData>().imageSetter = this.gameObject;
             tag.SetActive(false);
+        }
+
+        if (MenuData.mode == (int)MenuData.Modes.sort)
+        {
+            for (int i = 0; i < order.Count; i++)
+            {
+                int pos = Random.Range(0, maxLength);
+
+                bool notFound = true;
+                while (notFound)
+                {
+                    notFound = false;
+                    pos = Random.Range(0, maxLength);
+
+                    if (tagObjs.Contains(order[pos]))
+                    { //wenn bereits hinzugefügt
+                        notFound = true;
+                    }
+                }
+
+                GameObject tag = order[pos];
+                tagObjs.Add(tag);
+
+                int tpos = tagObjs.IndexOf(tag);
+
+                SetTag(tpos, tags[tag.GetComponent<TagData>().realPos]);
+            }
         }
 
         Sprite image = null;
@@ -167,11 +285,6 @@ public class ImageSetter : MonoBehaviour
                 new Rect(0,0,myTexture.width,myTexture.height), 
                 new Vector2(0,0)));
             imageLoaded = true;
-
-            if(progressBar.GetComponent<ProgressBar>().royaleShowTags)
-            {
-                FadeInTags();
-            }
         }
     }
 
@@ -190,7 +303,8 @@ public class ImageSetter : MonoBehaviour
     {
         foreach(GameObject tag in tagObjs)
         {
-            tag.GetComponent<DOTweenAnimation>().DORestartById("FadeOut");
+            //tag.GetComponent<DOTweenAnimation>().DORestartById("FadeOut");
+            tag.transform.DOScale(0, 0.5f);
             Destroy(tag, 1f);
         }
 
@@ -516,7 +630,15 @@ public class ImageSetter : MonoBehaviour
         foreach(GameObject tag in tagObjs)
         {
             tag.SetActive(true);
-            tag.GetComponent<DOTweenAnimation>().DORestartById("FadeIn");
+            tag.transform.localScale = new Vector3(0, 0, 0);
+
+            if(MenuData.mode == (int)MenuData.Modes.sort)
+            {
+                tag.transform.GetChild(0).GetComponent<TextMeshProUGUI>().color = Color.white;
+            }
+
+            tag.transform.DOScale(1, 0.5f);
+            //tag.GetComponent<DOTweenAnimation>().DORestartById("FadeIn");
         }
     }
 
@@ -537,6 +659,13 @@ public class ImageSetter : MonoBehaviour
         pr0Img.GetComponent<Image>().sprite = image;
 
         oldImg = null;
+
+        if (progressBar.GetComponent<ProgressBar>().royaleShowTags ||
+            progressBar.GetComponent<ProgressBar>().sortShowTags)
+        {
+            FadeInTags();
+        }
+
         Resources.UnloadUnusedAssets();
     }
 
@@ -547,7 +676,8 @@ public class ImageSetter : MonoBehaviour
 
         verObj.GetComponent<AspectRatioFitter>().aspectRatio = aspect;
         verObj.GetComponent<Image>().sprite = image;
-        verObj.transform.parent.GetComponent<DOTweenAnimation>().DORestartById("Enlarge");
+        //verObj.transform.parent.GetComponent<DOTweenAnimation>().DORestartById("Enlarge");
+        verObj.transform.parent.DOMove(targetLeft.position, 0.2f);
         Invoke("ActivateZoom", 0.2f);
     }
 
@@ -565,7 +695,8 @@ public class ImageSetter : MonoBehaviour
 
         Camera.main.orthographicSize = 637.7938f; //setzt zoom zurück falls vorhanden
 
-        verObj.transform.parent.GetComponent<DOTweenAnimation>().DORestartById("Reduce");
+        //verObj.transform.parent.GetComponent<DOTweenAnimation>().DORestartById("Reduce");
+        verObj.transform.parent.DOMove(targetRight.position, 0.2f);
     }
 
     // Update is called once per frame
