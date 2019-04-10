@@ -15,7 +15,7 @@ public class OfflinePack : MonoBehaviour
     public float dl_progress = 0f;
     public GameObject menu, postInfo, updateText;
     float version = 0.3f;
-    int postID = 3126416;
+    int postID = 3132970;
 
     // Start is called before the first frame update
     void Start()

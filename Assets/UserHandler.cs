@@ -228,7 +228,7 @@ public class UserHandler : MonoBehaviour
             sortNumbers.SetActive(true);
         } else
         {
-            sortNumbers.SetActive(true);
+            sortNumbers.SetActive(false);
         }
 
 #if UNITY_ANDROID

@@ -1,19 +1,28 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System;
 using UnityEngine.Advertisements;
 using UnityEngine.UI;
 using TMPro;
 
 public class AdBanner : MonoBehaviour
 {
-    public GameObject benitrat0r, adBtn;
+    public GameObject benitrat0r, adBtn, adInfo;
     const string gameID = "3063285";
+    private bool adWatching = false, appInstalled = false;
+    private DateTime startTime;
 
     private void Start()
     {
         Advertisement.Initialize(gameID);
 
-        if (Application.internetReachability == NetworkReachability.NotReachable)
+        bool ok = false;
+
+#if UNITY_ANDROID
+        ok = true;
+#endif
+
+        if (Application.internetReachability == NetworkReachability.NotReachable || !ok)
         {
             adBtn.GetComponent<Button>().interactable = false;
         }
@@ -21,7 +30,21 @@ public class AdBanner : MonoBehaviour
 
     public void ShowAd()
     {
+        adInfo.SetActive(false);
+        adWatching = true;
+
         StartCoroutine(ShowRewardedAd());
+    }
+
+    private void OnApplicationPause(bool pause)
+    {
+        if(pause)
+        {
+            if(adWatching)
+            {
+                startTime = DateTime.Now;
+            }
+        }
     }
 
     IEnumerator ShowRewardedAd()
@@ -45,7 +68,25 @@ public class AdBanner : MonoBehaviour
 #if UNITY_ANDROID
                 Firebase.Analytics.FirebaseAnalytics.LogEvent("AdShowed");
 #endif
-                UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + 2048);
+                adWatching = false;
+
+                DateTime cTime = DateTime.Now;
+
+                if(startTime == null)
+                {
+                    startTime = DateTime.Now;
+                }
+
+                TimeSpan adTime = cTime - startTime;
+
+                int benis = 2048;
+
+                if(adTime.TotalSeconds > 35)
+                {
+                    benis += 3072;
+                }
+
+                UserHandler.SetGlobalUserBenis(UserHandler.GetPlayerUserBenis() + (ulong)benis);
                 benitrat0r.GetComponent<Benitrat0r>().SetBenis(UserHandler.GetPlayerUserBenis());
                 break;
         }

@@ -17,7 +17,7 @@ public class Benitrat0r : MonoBehaviour
 {
     public ColumnData[] columnData = new ColumnData[5];
     public GameObject slotPrefab, slotParent, winSymbols, benisImagePrefab, benisParent, sound,
-        digitParent, menu;
+        digitParent, menu, adBanner, adInfo;
     public Sprite[] slotSprites = new Sprite[10], digits = new Sprite[10];
     public Vector3[] rowOffsets = new Vector3[5];
     private List<GameObject> slotObjects = new List<GameObject>();
@@ -37,6 +37,11 @@ public class Benitrat0r : MonoBehaviour
         }
 
         Fill();
+    }
+
+    public void AdClicked()
+    {
+        adInfo.SetActive(true);
     }
 
     private int GenNewType()
@@ -78,6 +83,8 @@ public class Benitrat0r : MonoBehaviour
                 slotObjects.Add(newSlot);
             }
         }
+
+        //this.gameObject.SetActive(false);
     }
 
     private void ResetSpin()
@@ -147,7 +154,7 @@ public class Benitrat0r : MonoBehaviour
             }
         } else if(ran == 10)
         {
-            if(Random.Range(0,6) == 0)
+            if(Random.Range(0, 1000) == 0)
             { //reich
                 type = (int)SlotPrefab.SlotTypes.reich;
             } else
@@ -291,11 +298,11 @@ public class Benitrat0r : MonoBehaviour
 
         int type = GetSlotType();
 
-        int winType = Random.Range(0, 100);
+        int winType = Random.Range(0, 1000);
 
         int win = 0;
 
-        if(winType >= 32 && winType < 66)
+        if(winType >= 565 && winType < 930)
         { //3er kombo
 
 #if UNITY_ANDROID
@@ -313,7 +320,7 @@ public class Benitrat0r : MonoBehaviour
             {
                 winRow[i] = type;
             }
-        } else if(winType >= 66 && winType < 70)
+        } else if(winType >= 930 && winType < 980)
         { //4er kombo
             win = 2;
 
@@ -330,7 +337,7 @@ public class Benitrat0r : MonoBehaviour
             {
                 winRow[i] = type;
             }
-        } else if(winType >= 70 && winType < 71)
+        } else if(winType >= 980 && winType < 1000)
         { //5er kombo
             if (Random.Range(0, 2) == 0)
             {

@@ -3,7 +3,11 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 2
-  tags: []
+  tags:
+  - FF_Player
+  - FF_Pipe
+  - FF_World
+  - FF_PipeTop
   layers:
   - Default
   - TransparentFX
@@ -13,8 +17,8 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
+  - FF_Player
+  - FF_Border
   - 
   - 
   - 

@@ -477,14 +477,30 @@ public class ImageSetter : MonoBehaviour
             return;
         }
 
+        tagText = tagText.ToLower();
+
+        tagText = tagText.Trim(); //entfernt leerzeichen
+
+        float percent = -1;
+
         for (int i = 0; i < tagObjs.Count; i++) {
             GameObject tempTag = tagObjs[i];
 
             if(!tempTag.GetComponent<TagData>().isGuessed[0])
             {
-                tagText = tagText.ToLower();
-                if(tagText.Equals(tempTag.GetComponent<TagData>().text.ToLower()))
+                string tagDataText = tempTag.GetComponent<TagData>().text.ToLower().Trim();
+
+                if (tagText.Equals(tagDataText))
                 { //wenn richtiger tag
+                    guessed = i;
+                    break;
+                } else if(tagDataText.Contains(tagText) && tagText.Length > 2)
+                {  //wenn teil vom tag enthalten
+                    int tagLength = tagDataText.Length;
+                    int guessLength = tagText.Length;
+
+                    percent = (float)guessLength / (float)tagLength;
+
                     guessed = i;
                     break;
                 }
@@ -496,7 +512,13 @@ public class ImageSetter : MonoBehaviour
         { //tag erraten
             GameObject tempTag = tagObjs[guessed];
 
-            int addBenis = userHandler.GetComponent<UserHandler>().SetUserBenis(tpos);
+            float addBenis = userHandler.GetComponent<UserHandler>().SetUserBenis(tpos);
+
+            if(percent > 0)
+            {
+                addBenis *= 0.75f; //-25% da nicht vollständig
+                addBenis *= percent;
+            }
 
             if (userHandler.GetComponent<UserHandler>().networkGameRunning)
             {
